@@ -1,0 +1,4 @@
+{
+  "baseUrl": "https://kochagronomicservices.com",
+  "routes": ["/", "/optrient", "/knowledge-center", "/about", "/find-a-rep"]
+}

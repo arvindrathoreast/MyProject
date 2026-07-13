@@ -1,0 +1,132 @@
+name: Daily Test Reporting
+
+on:
+  workflow_dispatch:
+    inputs:
+      site_name:
+        description: 'Site name for storage path'
+        required: false
+        default: 'imagemakers'
+  schedule:
+    - cron: '0 6 * * *' # 6 AM UTC daily
+
+env:
+  CI: true
+  SITE_NAME: ${{ github.event.inputs.site_name || 'imagemakers' }}
+
+jobs:
+  test-matrix:
+    name: Run Tests (${{ matrix.suite }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - perf
+          - a11y
+          - seo
+          - functional
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        if: matrix.suite != 'perf'
+        run: npm run install:playwright-browsers
+
+      - name: Run Performance Tests
+        if: matrix.suite == 'perf'
+        run: npm run test:perf --silent
+        continue-on-error: true
+
+      - name: Run Accessibility Tests
+        if: matrix.suite == 'a11y'
+        run: npx playwright test tests/a11y
+        continue-on-error: true
+
+      - name: Aggregate Accessibility Report
+        if: matrix.suite == 'a11y' && always()
+        run: npm run report:a11y
+
+      - name: Run SEO Tests
+        if: matrix.suite == 'seo'
+        run: npx playwright test tests/seo
+        continue-on-error: true
+
+      - name: Aggregate SEO Report
+        if: matrix.suite == 'seo' && always()
+        run: npm run report:seo
+
+      - name: Run Functional Tests (E2E + Visual)
+        if: matrix.suite == 'functional'
+        run: npx playwright test tests/e2e tests/visual
+        continue-on-error: true
+
+      - name: Aggregate Functional Report
+        if: matrix.suite == 'functional' && always()
+        run: npm run report:functional
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-${{ matrix.suite }}
+          path: reports/
+          retention-days: 1
+
+  upload-reports:
+    name: Upload Reports to Azure
+    runs-on: ubuntu-latest
+    needs: test-matrix
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download all report artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: report-*
+          path: reports-temp
+          merge-multiple: true
+
+      - name: Consolidate reports
+        run: |
+          mkdir -p reports
+          cp -r reports-temp/* reports/ || true
+          echo "Consolidated reports:"
+          ls -lh reports/
+
+      - name: Upload to Azure Blob Storage
+        env:
+          AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          AZURE_STORAGE_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
+          AZURE_STORAGE_CONTAINER: ${{ vars.AZURE_STORAGE_CONTAINER || 'test-reports' }}
+          SITE_NAME: ${{ env.SITE_NAME }}
+        run: npm run upload:reports
+
+      - name: Upload reports as artifact (backup)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-reports-${{ env.SITE_NAME }}-${{ github.run_number }}
+          path: reports/
+          retention-days: 30

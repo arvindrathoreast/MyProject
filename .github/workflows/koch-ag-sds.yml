@@ -1,0 +1,92 @@
+name: Koch Ag SDS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - be-koch-sds
+  schedule:
+    - cron: '*/5 * * * *'
+
+# Cancel any in-progress run on the same branch to avoid duplicate jobs
+concurrency:
+  group: koch-ag-sds-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-health-check:
+    name: API Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Send POST request and validate response
+        run: |
+          echo "=========================================="
+          echo "Koch Ag SDS - API Health Check"
+          echo "Triggered by : ${{ github.event_name }}"
+          echo "Branch       : ${{ github.ref_name }}"
+          echo "Run ID       : ${{ github.run_id }}"
+          echo "Timestamp    : $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "=========================================="
+
+          RESPONSE=$(curl --silent \
+            --retry 3 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            --max-time 30 \
+            --write-out "\n%{http_code}" \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --data '{
+              "start": 25,
+              "length": 12,
+              "order": 0,
+              "status": 1,
+              "visibility": 1,
+              "region": 2,
+              "categoryIds": []
+            }' \
+            https://doccenter.kochagronomicservices.com/api/product-labels/filter)
+
+          HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+
+          echo "------------------------------------------"
+          echo "HTTP Status Code : $HTTP_STATUS"
+          echo "Full API Response: $HTTP_BODY"
+          echo "------------------------------------------"
+
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Validation Result: FAIL"
+            echo "ERROR: Non-200 status code received ($HTTP_STATUS)."
+            exit 1
+          fi
+
+          if ! echo "$HTTP_BODY" | jq empty 2>/dev/null; then
+            echo "Validation Result: FAIL"
+            echo "ERROR: Response could not be parsed as valid JSON."
+            exit 1
+          fi
+
+          SUCCESS=$(echo "$HTTP_BODY" | jq -r '.success')
+
+          if [ "$SUCCESS" != "true" ]; then
+            echo "Validation Result: FAIL"
+            echo "ERROR: API responded with success: $SUCCESS"
+            exit 1
+          fi
+
+          DATA_LENGTH=$(echo "$HTTP_BODY" | jq '.data | length')
+
+          echo "Data Length: $DATA_LENGTH"
+
+          if [ -z "$DATA_LENGTH" ] || [ "$DATA_LENGTH" -eq 0 ]; then
+            echo "Validation Result: FAIL"
+            echo "ERROR: API returned success: true but data array is empty."
+            exit 1
+          fi
+
+          echo "Validation Result: PASS"
+          echo "SUCCESS: API responded with success: true and data contains $DATA_LENGTH record(s)."

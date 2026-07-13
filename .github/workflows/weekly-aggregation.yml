@@ -1,0 +1,68 @@
+name: Weekly Test Aggregation
+
+on:
+  workflow_dispatch:
+    inputs:
+      site_name:
+        description: 'Site name for storage path'
+        required: false
+        default: 'imagemakers'
+      start_date:
+        description: 'Start date (YYYY-MM-DD) - optional'
+        required: false
+      end_date:
+        description: 'End date (YYYY-MM-DD) - optional'
+        required: false
+  schedule:
+    - cron: '0 8 * * 1' # 8 AM UTC every Monday (after daily reports)
+  workflow_run:
+    workflows: ['Daily Test Reporting']
+    types:
+      - completed
+
+env:
+  CI: true
+  SITE_NAME: ${{ github.event.inputs.site_name || 'imagemakers' }}
+
+jobs:
+  aggregate-weekly:
+    name: Aggregate Weekly Reports
+    runs-on: ubuntu-latest
+    # Only run if daily reporting completed successfully or this is a manual/scheduled run
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Weekly Aggregation
+        env:
+          AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          AZURE_STORAGE_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
+          AZURE_STORAGE_CONTAINER: ${{ vars.AZURE_STORAGE_CONTAINER || 'test-reports' }}
+          SITE_NAME: ${{ env.SITE_NAME }}
+        run: |
+          if [ -n "${{ github.event.inputs.start_date }}" ] && [ -n "${{ github.event.inputs.end_date }}" ]; then
+            npm run aggregate:weekly -- ${{ github.event.inputs.start_date }} ${{ github.event.inputs.end_date }}
+          else
+            npm run aggregate:weekly
+          fi
+
+      - name: Upload weekly summary as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-summary-${{ env.SITE_NAME }}-${{ github.run_number }}
+          path: reports/weekly-summary-*.json
+          retention-days: 90

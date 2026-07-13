@@ -1,0 +1,19 @@
+[
+  {
+    "path": "/*",
+    "timings": {
+      "largest-contentful-paint": { "numericValue": 3000 },
+      "total-blocking-time": { "numericValue": 300 }
+    },
+    "resourceSizes": {
+      "total": { "numericValue": 1500 },
+      "script": { "numericValue": 400 },
+      "stylesheet": { "numericValue": 300 },
+      "image": { "numericValue": 600 }
+    },
+    "resourceCounts": {
+      "total": { "numericValue": 60 },
+      "third-party": { "numericValue": 10 }
+    }
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "default": "production",
+  "environments": {
+    "production": {
+      "baseUrl": "https://kochagronomicservices.com",
+      "robotsBlocked": false,
+      "ga4MeasurementId": "",
+      "_comment": "ga4MeasurementId can be either a GA4 ID (G-XXXXXX) or GTM container ID (GTM-XXXXXX)."
+    },
+    "staging": {
+      "baseUrl": "https://koch-next-stage.azurewebsites.net",
+      "robotsBlocked": true,
+      "ga4MeasurementId": "",
+      "_comment": "ga4MeasurementId can be either a GA4 ID (G-XXXXXX) or GTM container ID (GTM-XXXXXX)."
+    },
+    "development": {
+      "baseUrl": "https://koch-next-dev.azurewebsites.net",
+      "robotsBlocked": true,
+      "ga4MeasurementId": ""
+    }
+  }
+}
