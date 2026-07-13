@@ -4,9 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - be-koch-sds
   schedule:
-    - cron: '0 * * * *'
+    - cron: '*/5 * * * *'
 
 # Cancel any in-progress run on the same branch to avoid duplicate jobs
 concurrency:
