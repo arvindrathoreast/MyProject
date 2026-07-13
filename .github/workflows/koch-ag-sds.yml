@@ -23,6 +23,7 @@ jobs:
     steps:
       - name: Send POST request and validate response
         run: |
+          echo "Event: ${{ github.event_name }}"
           echo "=========================================="
           echo "Koch Ag SDS - API Health Check"
           echo "Triggered by : ${{ github.event_name }}"
