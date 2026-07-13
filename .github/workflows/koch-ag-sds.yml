@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   api-health-check:
-    name: API Health Check
+    name: SDS API Health Check
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
