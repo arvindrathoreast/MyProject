@@ -1,0 +1,8 @@
+node_modules/
+playwright-report/
+lighthouse-report/
+a11y-report/
+.husky/
+dist/
+coverage/
+*.log

@@ -1,0 +1,10 @@
+node_modules/
+.husky/
+.git/
+playwright-report/
+lighthouse-report/
+a11y-report/
+dist/
+coverage/
+*.min.js
+*.log

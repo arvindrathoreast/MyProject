@@ -1,0 +1,93 @@
+name: Playwright Test Harness
+
+on:
+  workflow_dispatch:
+    inputs:
+      includePerf:
+        description: 'Include performance tests?'
+        required: false
+        default: 'false'
+  schedule:
+    - cron: '0 5 * * 0' # 5 AM UTC weekly (Sunday)
+
+env:
+  CI: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Base suites – everything except perf
+        suite:
+          - smoke
+          - e2e
+          - a11y
+          - visual
+          - seo
+          - robots
+          - sitemap
+          - 404
+          - security
+          - analytics
+        # We'll add perf conditionally in the steps
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npm run install:playwright-browsers
+
+      - name: Run Playwright suite
+        if: ${{ matrix.suite != 'perf' }}
+        run: npm run test:${{ matrix.suite }}
+
+      # The perf run is handled by a dedicated job below (runs every time)
+
+      - name: Upload Playwright HTML report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.suite }}
+          path: playwright-report
+          retention-days: 7
+
+  perf:
+    name: Lighthouse Performance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npm run install:playwright-browsers
+
+      - name: Run Lighthouse - Performance
+        run: npm run test:perf --silent
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: lighthouse-report
+          retention-days: 7
