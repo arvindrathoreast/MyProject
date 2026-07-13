@@ -1,13 +1,14 @@
 name: Koch Ag SDS
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
   push:
     branches:
       - main
       - be-koch-sds
   schedule:
-    - cron: '*/5 * * * *'
+    # Every 5 minutes (UTC), offset from :00 to reduce dropped runs during top-of-hour load.
+    - cron: '2/5 * * * *'
 
 # Cancel any in-progress run on the same branch to avoid duplicate jobs
 concurrency:
