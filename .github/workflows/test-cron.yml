@@ -1,15 +1,15 @@
 name: Test Cron
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/5 * * * *'   # Every 5 minutes
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Print Event
-        run: |
-          echo "Event = ${{ github.event_name }}"
-          date
+      - uses: actions/checkout@v4
+
+      - name: Run Test
+        run: echo "Workflow executed at $(date)"
