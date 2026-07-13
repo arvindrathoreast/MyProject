@@ -1,14 +1,16 @@
- name: Test Cron
+name: Test Cron
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: '*/5 * * * *'
 
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
-      - run: |
-          echo "Event: ${{ github.event_name }}"
+      - name: Print Event
+        run: |
+          echo "Event = ${{ github.event_name }}"
           date
