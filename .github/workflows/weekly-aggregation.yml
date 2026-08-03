@@ -13,12 +13,12 @@ on:
       end_date:
         description: 'End date (YYYY-MM-DD) - optional'
         required: false
-  schedule:
-    - cron: '0 8 * * 1' # 8 AM UTC every Monday (after daily reports)
-  workflow_run:
-    workflows: ['Daily Test Reporting']
-    types:
-      - completed
+  # schedule:
+  #   - cron: '0 8 * * 1' # Disabled to stop automatic email notifications
+  # workflow_run:
+  #   workflows: ['Daily Test Reporting']
+  #   types:
+  #     - completed
 
 env:
   CI: true
@@ -28,11 +28,8 @@ jobs:
   aggregate-weekly:
     name: Aggregate Weekly Reports
     runs-on: ubuntu-latest
-    # Only run if daily reporting completed successfully or this is a manual/scheduled run
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'schedule' ||
-      github.event.workflow_run.conclusion == 'success'
+    # Only run when triggered manually
+    if: github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
