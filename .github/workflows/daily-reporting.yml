@@ -7,8 +7,8 @@ on:
         description: 'Site name for storage path'
         required: false
         default: 'imagemakers'
-  schedule:
-    - cron: '0 6 * * *' # 6 AM UTC daily
+  # schedule:
+  #   - cron: '0 6 * * *' # Disabled to stop automatic failure emails
 
 env:
   CI: true
